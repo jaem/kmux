@@ -1,4 +1,4 @@
-package kmux
+package nimux
 
 /*
  Temporary use of gorilla/context until Go1.7 is out

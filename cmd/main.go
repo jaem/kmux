@@ -3,50 +3,52 @@ package main
 import (
 	"net/http"
 	"fmt"
-	"github.com/jaem/nimble"
-	"github.com/jaem/kmux"
+	"github.com/nimgo/nim"
+	"github.com/nimgo/nimux"
 )
 
 func main() {
-	mux := kmux.New()
-	mux.GET("/hello/:q/watch", hello)
+	mux := nimux.New()
+	mux.GET("/hello/*watch", flush("Hello!"))
 	mux.GET("/helloinline", func(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, "Hello inline!")
 	})
 
-	n := nimble.Default()
-	n.UseHandlerFunc(middlewareA)
-	n.UseHandlerFunc(middlewareB)
+	auth := nimux.New()
+	{
+		auth.GET("/auth/boy/:pants", flush("boy"))
+		auth.GET("/auth/girl", flush("girl"))
+	}
+
+	sub := nim.New()
+	sub.UseFunc(middlewareA)
+	sub.UseFunc(middlewareB)
+	sub.Use(auth)
+
+	mux.GET("/auth/*sub", sub.ServeHTTP)
+
+
+	n := nim.Default()
 	n.Use(mux)
 	n.Run(":3000")
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hellxxo!")
-	ps := kmux.GetHttpParams(r)
-
-	fmt.Println("...." + ps.ByName("q"))
-
-	//bun := hax.GetBundle(c)
-	//
-	//if value := bun.Get("valueA"); value != nil {
-	//	logger.Printy("from helloHandlerFunc, valueA is " + value.(string))
-	//}
-	//if value := bun.Get("valueB"); value != nil {
-	//	logger.Printy("from helloHandlerFunc, valueB is " + value.(string))
-	//}
+func flush(msg string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, msg)
+		ps := nimux.GetHttpParams(r)
+		fmt.Println("...." + ps.ByName("watch"))
+	}
 }
 
-func middlewareA(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func middlewareA(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("[nim.] I am middlewareA")
 	//bun := hax.GetBundle(c)
 	//bun.Set("valueA", ": from middlewareA")
-	next(w, r)
 }
 
-func middlewareB(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func middlewareB(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("[nim.] I am middlewareB")
 	//bun := hax.GetBundle(c)
 	//bun.Set("valueB", ": from middlewareB")
-	next(w, r)
 }
